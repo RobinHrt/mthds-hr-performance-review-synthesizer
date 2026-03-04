@@ -1,7 +1,7 @@
 [package]
 name = "hr_review_synthesizer"
 address = "github.com/RobinHrt/mthds-hr-performance-review-synthesizer"
-display_name = "HR Performance Review Synthesizer"
+display_name = "HR Review Synthesizer"
 version = "1.0.0"
 description = "Synthesize 360 feedback into structured performance reviews"
 license = "MIT"
