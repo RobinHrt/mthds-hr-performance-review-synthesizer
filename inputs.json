@@ -1,0 +1,19 @@
+{
+  "feedback_packages": {
+    "concept": "native.Document",
+    "content": [
+      {
+        "url": "/path/to/employee1_feedback.pdf"
+      },
+      {
+        "url": "/path/to/employee2_feedback.pdf"
+      }
+    ]
+  },
+  "competency_framework": {
+    "concept": "native.Text",
+    "content": {
+      "text": "text_value"
+    }
+  }
+}

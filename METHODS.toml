@@ -1,0 +1,12 @@
+[package]
+name = "hr_review_synthesizer"
+address = "github.com/RobinHrt/mthds-hr-performance-review-synthesizer"
+display_name = "HR Performance Review Synthesizer"
+version = "1.0.0"
+description = "Synthesize 360 feedback into structured performance reviews"
+license = "MIT"
+mthds_version = ">=1.0.0"
+main_pipe = "performance_review_synthesis"
+
+[exports.hr_performance_review_synthesizer]
+pipes = ["performance_review_synthesis", "synthesize_single_employee", "extract_feedback", "synthesize_review", "compile_team_report"]

@@ -1,0 +1,126 @@
+domain    = "hr_performance_review_synthesizer"
+description = "Synthesize 360 feedback submissions into structured, calibrated performance reviews with team-level insights"
+main_pipe = "performance_review_synthesis"
+
+[concept.CompetencyRating]
+description = "Rating for a single competency based on synthesized feedback"
+
+[concept.CompetencyRating.structure]
+competency          = { type = "text", description = "Competency name (e.g., leadership, technical skills, collaboration)", required = true }
+rating              = { choices = ["exceeds expectations", "meets expectations", "developing", "below expectations"], description = "Performance rating for this competency", required = true }
+supporting_evidence = { type = "text", description = "Synthesized evidence from all reviewers", required = true }
+reviewer_agreement  = { choices = ["consensus", "mostly aligned", "mixed", "divergent"], description = "How much reviewers agree on this competency", required = true }
+
+[concept.PerformanceSynthesis]
+description = "Synthesized performance review for a single employee"
+
+[concept.PerformanceSynthesis.structure]
+employee_name         = { type = "text", description = "Full name of the employee", required = true }
+role                  = { type = "text", description = "Current role and title" }
+review_period         = { type = "text", description = "Review period covered" }
+strengths             = { type = "text", description = "Key strength themes appearing across multiple reviewers, with evidence count", required = true }
+development_areas     = { type = "text", description = "Key development themes across reviewers, with evidence count", required = true }
+competency_ratings    = { type = "list", item_type = "concept", item_concept_ref = "hr_performance_review_synthesizer.CompetencyRating", description = "Rating per competency" }
+standout_achievements = { type = "text", description = "Achievements cited by multiple reviewers" }
+development_goals     = { type = "text", description = "2-3 specific, actionable development goals", required = true }
+overall_assessment    = { choices = ["exceptional", "strong", "solid", "needs improvement", "underperforming"], description = "Overall performance assessment", required = true }
+review_narrative      = { type = "text", description = "3-4 paragraph draft review narrative", required = true }
+
+[concept.PerformanceReviewReport]
+description = "Team-level performance review report with calibration insights"
+
+[concept.PerformanceReviewReport.structure]
+team_patterns            = { type = "text", description = "Common strengths and gaps across the team", required = true }
+calibration_flags        = { type = "text", description = "Employees with highly divergent feedback that need HRBP attention", required = true }
+assessment_distribution  = { type = "text", description = "Distribution of overall assessments across the team" }
+executive_summary        = { type = "text", description = "Summary for the HR Business Partner", required = true }
+
+# --- Pipes ---
+
+[pipe.performance_review_synthesis]
+type        = "PipeSequence"
+description = "Synthesize 360 feedback for a batch of employees into calibrated reviews"
+inputs      = { feedback_packages = "Document[]", competency_framework = "Text" }
+output      = "PerformanceReviewReport"
+steps = [
+    { pipe = "synthesize_single_employee", batch_over = "feedback_packages", batch_as = "feedback_package", result = "performance_syntheses" },
+    { pipe = "compile_team_report", result = "team_report" },
+]
+
+[pipe.synthesize_single_employee]
+type        = "PipeSequence"
+description = "Extract and synthesize 360 feedback for a single employee"
+inputs      = { feedback_package = "Document", competency_framework = "Text" }
+output      = "PerformanceSynthesis"
+steps = [
+    { pipe = "extract_feedback", result = "pages" },
+    { pipe = "synthesize_review", result = "synthesis" },
+]
+
+[pipe.extract_feedback]
+type        = "PipeExtract"
+description = "Extract text from a feedback document package"
+inputs      = { feedback_package = "Document" }
+output      = "Page[]"
+model       = "@default-text-from-pdf"
+
+[pipe.synthesize_review]
+type        = "PipeLLM"
+description = "Synthesize all reviewer feedback into a structured performance review"
+inputs      = { pages = "Page[]", competency_framework = "Text" }
+output      = "PerformanceSynthesis"
+model       = "$writing-factual"
+prompt      = """You are an HR Business Partner synthesizing 360 feedback into a structured performance review.
+
+The feedback below contains input from the employee's manager, peers, and self-assessment. Your job is to synthesize — not copy-paste quotes.
+
+Using the competency framework provided:
+
+1. Identify the employee name, role, and review period from the feedback.
+
+2. Find strength themes that appear across multiple reviewers. Count how many reviewers mentioned each theme.
+
+3. Find development area themes across reviewers. Count evidence.
+
+4. For each competency in the framework, provide:
+   - A rating: exceeds expectations, meets expectations, developing, or below expectations
+   - Synthesized supporting evidence from all reviewers
+   - Reviewer agreement: consensus, mostly aligned, mixed, or divergent
+
+5. Note standout achievements cited by multiple reviewers.
+
+6. Recommend 2-3 specific, actionable development goals.
+
+7. Provide an overall assessment: exceptional, strong, solid, needs improvement, or underperforming.
+
+8. Write a 3-4 paragraph draft review narrative that is balanced, evidence-based, and suitable for sharing with the employee.
+
+--- COMPETENCY FRAMEWORK ---
+@competency_framework
+
+--- 360 FEEDBACK ---
+@pages"""
+
+[pipe.compile_team_report]
+type        = "PipeLLM"
+description = "Compile individual reviews into a team-level report with calibration insights"
+inputs      = { performance_syntheses = "PerformanceSynthesis[]", competency_framework = "Text" }
+output      = "PerformanceReviewReport"
+model       = "$writing-factual"
+prompt      = """You are an HR Business Partner compiling team-level performance insights.
+
+Review all individual performance syntheses and produce a team report:
+
+1. Identify common strength patterns across the team and common development gaps.
+
+2. Flag calibration issues: employees whose feedback is highly divergent (mixed or divergent reviewer agreement) or whose overall assessment seems inconsistent with competency ratings. These need HRBP attention before reviews are finalized.
+
+3. Show the distribution of overall assessments (how many exceptional, strong, solid, needs improvement, underperforming).
+
+4. Write an executive summary for the HRBP highlighting team health, calibration concerns, and recommended actions.
+
+--- COMPETENCY FRAMEWORK ---
+@competency_framework
+
+--- ALL PERFORMANCE SYNTHESES ---
+@performance_syntheses"""
