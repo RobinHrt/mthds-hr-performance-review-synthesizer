@@ -1,4 +1,4 @@
-domain    = "hr_performance_review_synthesizer"
+domain    = "hr_review_synthesizer"
 description = "Synthesize 360 feedback submissions into structured, calibrated performance reviews with team-level insights"
 main_pipe = "performance_review_synthesis"
 
@@ -20,7 +20,7 @@ role                  = { type = "text", description = "Current role and title" 
 review_period         = { type = "text", description = "Review period covered" }
 strengths             = { type = "text", description = "Key strength themes appearing across multiple reviewers, with evidence count", required = true }
 development_areas     = { type = "text", description = "Key development themes across reviewers, with evidence count", required = true }
-competency_ratings    = { type = "list", item_type = "concept", item_concept_ref = "hr_performance_review_synthesizer.CompetencyRating", description = "Rating per competency" }
+competency_ratings    = { type = "list", item_type = "concept", item_concept_ref = "hr_review_synthesizer.CompetencyRating", description = "Rating per competency" }
 standout_achievements = { type = "text", description = "Achievements cited by multiple reviewers" }
 development_goals     = { type = "text", description = "2-3 specific, actionable development goals", required = true }
 overall_assessment    = { choices = ["exceptional", "strong", "solid", "needs improvement", "underperforming"], description = "Overall performance assessment", required = true }
